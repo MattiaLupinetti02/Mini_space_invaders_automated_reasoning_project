@@ -87,7 +87,7 @@ services:
       - .:/work
 ```
 
-Entrambi i file sono già nel repo, sono quindi già disponibili dopo la clonazione.
+**Entrambi i file sono già nel repo, sono quindi già disponibili dopo la clonazione.**
 
 ### Avvio
 
