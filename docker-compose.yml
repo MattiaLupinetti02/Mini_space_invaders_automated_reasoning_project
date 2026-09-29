@@ -1,0 +1,8 @@
+services:
+  mini-space-invaders:
+    build: .
+    container_name: mini_space_invaders_asp
+    ports:
+      - "8888:8888"
+    volumes:
+      - .:/work
