@@ -6,6 +6,12 @@ Questo repository contiene la codifica in **Answer Set Programming (ASP)** del p
 
 ## Indice
 
+- [Installazione ed esecuzione](#installazione-ed-esecuzione)
+  - [Prerequisiti](#prerequisiti)
+  - [File necessari](#file-necessari)
+  - [Avvio](#avvio)
+  - [Cosa viene installato](#cosa-viene-installato)
+  - [Arresto](#arresto)
 - [Model](#model)
   - [Definizione del Dominio](#definizione-del-dominio)
   - [Analisi dello Stato e Identificazione dei Bersagli](#analisi-dello-stato-e-identificazione-dei-bersagli)
@@ -21,6 +27,93 @@ Questo repository contiene la codifica in **Answer Set Programming (ASP)** del p
   - [Visualizzazione piani](#visualizzazione-piani)
 - [Conclusione](#conclusione)
 - [Appendice A — Semantica degli atomi del modello ASP](#appendice-a--semantica-degli-atomi-del-modello-asp)
+
+---
+
+## Installazione ed esecuzione
+
+Il modo più semplice e riproducibile per eseguire il progetto — solver ASP `clingo`, Jupyter e tutte le librerie Python richieste dal notebook — è tramite **Docker Compose**, che crea un ambiente conda dedicato chiamato `ASP`, lo stesso nome del kernel richiesto da `test_space_invaders.ipynb`.
+
+### Prerequisiti
+
+- [Docker](https://docs.docker.com/get-docker/) e [Docker Compose](https://docs.docker.com/compose/install/) installati sulla macchina host.
+
+### File necessari
+
+Nella root del repository (accanto a `test_space_invaders.ipynb`, `utils.py`, `instances.py` e `mini_space_invaders_model.lp`) devono essere presenti i due file seguenti.
+
+**`Dockerfile`**
+
+```dockerfile
+FROM continuumio/miniconda3:latest
+
+# Crea l'ambiente conda "ASP" (stesso nome del kernel richiesto dal notebook)
+# con clingo (solver ASP: CLI + binding Python) e le librerie usate nel notebook
+RUN conda create -y -n ASP -c conda-forge \
+        python=3.12 \
+        clingo \
+        jupyterlab \
+        notebook \
+        ipykernel \
+        pandas \
+        matplotlib \
+    && conda clean -afy
+
+# Registra il kernel "ASP" per Jupyter (combacia col kernelspec del notebook,
+# cosi' si seleziona da solo aprendo test_space_invaders.ipynb)
+RUN /opt/conda/envs/ASP/bin/python -m ipykernel install \
+        --name ASP --display-name "ASP" --sys-prefix
+
+# Rende l'ambiente ASP quello di default (clingo, jupyter, ... in PATH)
+ENV PATH=/opt/conda/envs/ASP/bin:$PATH
+
+WORKDIR /work
+EXPOSE 8888
+
+CMD ["jupyter", "notebook", \
+     "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root"]
+```
+
+**`docker-compose.yml`**
+
+```yaml
+services:
+  mini-space-invaders:
+    build: .
+    container_name: mini_space_invaders_asp
+    ports:
+      - "8888:8888"
+    volumes:
+      - .:/work
+```
+
+Entrambi i file sono già nel repo, sono quindi già disponibili dopo la clonazione.
+
+### Avvio
+
+```bash
+docker compose up --build
+```
+
+Nel log del terminale comparirà un URL del tipo `http://127.0.0.1:8888/tree?token=...`: aprilo nel browser per accedere a Jupyter. La cartella del progetto è montata come volume (`.:/work`), quindi ogni modifica fatta da dentro Jupyter (notebook, file `.lp`, `results/`) si riflette immediatamente sul filesystem host e viceversa.
+
+Apri `test_space_invaders.ipynb`: il kernel **ASP**, creato dal container, dovrebbe risultare già preselezionato automaticamente, dato che il nome combacia con quello atteso dal notebook.
+
+### Cosa viene installato
+
+| Componente | Ruolo |
+|---|---|
+| `clingo` (conda-forge) | Solver ASP: fornisce sia il binding Python (`import clingo`, usato nel notebook) sia l'eseguibile a riga di comando `clingo` |
+| `jupyterlab` / `notebook` | Interfaccia per eseguire `test_space_invaders.ipynb` |
+| `ipykernel` | Permette di registrare e usare il kernel `ASP` dentro Jupyter |
+| `pandas` | Costruzione delle tabelle risultati (`ExperimentResult`, CSV in `results/`) |
+| `matplotlib` | Animazione dei piani calcolati (`animate_model` in `utils.py`) |
+
+### Arresto
+
+```bash
+docker compose down
+```
 
 ---
 
